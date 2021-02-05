@@ -1,0 +1,121 @@
+Table: Product
+
++---------------+---------+
+| Column Name   | Type    |
++---------------+---------+
+| product_id    | int     |
+| product_name  | varchar |
++---------------+---------+
+product_id is the primary key for this table.
+product_name is the name of the product.
+Table: Sales
+
++---------------------+---------+
+| Column Name         | Type    |
++---------------------+---------+
+| product_id          | int     |
+| period_start        | varchar |
+| period_end          | date    |
+| average_daily_sales | int     |
++---------------------+---------+
+product_id is the primary key for this table. 
+period_start and period_end indicates the start and end date for sales period, both dates are inclusive.
+The average_daily_sales column holds the average daily sales amount of the items for the period.
+Write an SQL query to report the Total sales amount of each item for each year, with corresponding product name, product_id, product_name and report_year.
+
+Dates of the sales years are between 2018 to 2020. Return the result table ordered by product_id and report_year.
+
+The query result format is in the following example:
+
+Product table:
++------------+--------------+
+| product_id | product_name |
++------------+--------------+
+| 1          | LC Phone     |
+| 2          | LC T-Shirt   |
+| 3          | LC Keychain  |
++------------+--------------+
+
+Sales table:
++------------+--------------+-------------+---------------------+
+| product_id | period_start | period_end  | average_daily_sales |
++------------+--------------+-------------+---------------------+
+| 1          | 2019-01-25   | 2019-02-28  | 100                 |
+| 2          | 2018-12-01   | 2020-01-01  | 10                  |
+| 3          | 2019-12-01   | 2020-01-31  | 1                   |
++------------+--------------+-------------+---------------------+
+
+Result table:
++------------+--------------+-------------+--------------+
+| product_id | product_name | report_year | total_amount |
++------------+--------------+-------------+--------------+
+| 1          | LC Phone     |    2019     | 3500         |
+| 2          | LC T-Shirt   |    2018     | 310          |
+| 2          | LC T-Shirt   |    2019     | 3650         |
+| 2          | LC T-Shirt   |    2020     | 10           |
+| 3          | LC Keychain  |    2019     | 31           |
+| 3          | LC Keychain  |    2020     | 31           |
++------------+--------------+-------------+--------------+
+LC Phone was sold for the period of 2019-01-25 to 2019-02-28, and there are 35 days for this period. Total amount 35*100 = 3500. 
+LC T-shirt was sold for the period of 2018-12-01 to 2020-01-01, and there are 31, 365, 1 days for years 2018, 2019 and 2020 respectively.
+LC Keychain was sold for the period of 2019-12-01 to 2020-01-31, and there are 31, 31 days for years 2019 and 2020 respectively.
+
+
+Credits To: leetcode.com
+
+solution :
+
+create a dummy table with year, start_date and end_date for every year :
+
+select to_date(to_char(rownum+2000)||'-01-01','yyyy-mm-dd') as start_dt ,
+       to_date(to_char(rownum+2000)||'-12-31','yyyy-mm-dd') as end_dt ,
+       rownum+2000 as year
+from dual connect by level <= 10
+
+start_dt  end_dt      year
+---------------------------
+1/1/2001	12/31/2001	2001
+1/1/2002	12/31/2002	2002
+1/1/2003	12/31/2003	2003
+1/1/2004	12/31/2004	2004
+1/1/2005	12/31/2005	2005
+1/1/2006	12/31/2006	2006
+1/1/2007	12/31/2007	2007
+1/1/2008	12/31/2008	2008
+1/1/2009	12/31/2009	2009
+1/1/2010	12/31/2010	2010
+-----------------------------------------------
+Use given dummy table to derive yearwise sales and then aggregate it by year and product :
+
+
+select a.product_id , c.product_name , b.year
+      sum (
+       case when a.period_start >= start_dt and a.period_start <= end_dt and a.period_end >= end_dt then 
+              (end_dt-period_start)*a.average_daily_sales
+            when a.period_start >= start_dt and a.period_start <= end_dt and a.period_end < end_dt then  
+               (period_end-period_start)*a.average_daily_sales
+            when a.period_start <= start_dt and a.period_end >= end_dt  then
+                (end_dt-start_dt)*a.average_daily_sales
+            when a.period_start < start_dt and and a.period_end < end_dt then   
+                 (period_end-start_dt)*a.average_daily_sales
+        end
+       ) total_amount
+       
+      
+ from sales a ,
+      (
+      select to_date(to_char(rownum+2000)||'-01-01','yyyy-mm-dd') as start_dt ,
+       to_date(to_char(rownum+2000)||'-12-31','yyyy-mm-dd') as end_dt ,
+       rownum+2000 as year
+      from dual connect by level <= 10
+      ) b ,
+       product c
+ where period_start <= end_dt and 
+       period_end >= start_dt and 
+       a.product_id = c.product_id
+       
+ group by  a.product_id , c.product_name , b.year
+       
+ 
+    
+       

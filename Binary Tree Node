@@ -48,6 +48,7 @@ union
 select id , 'Leaf' as type 
 from table a
 where not exists (select 1 from table b where a.id=b.p_id)
+and  p_id != null
 union 
 select P_id , 'Inner' as Type
 from table 

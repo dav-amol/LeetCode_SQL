@@ -42,14 +42,27 @@ Note
 If there is only one node on the tree, you only need to output its root attributes.
 
 select id , 'Root' as Type 
-from table 
+from tab 
 where p_id is null
 union 
 select id , 'Leaf' as type 
-from table a
-where not exists (select 1 from table b where a.id=b.p_id)
-and  p_id != null
+from tab a
+where not exists (select 1 from tab b where a.id=b.p_id)
 union 
-select P_id , 'Inner' as Type
-from table 
-where p_id != null;
+select id , 'Inner' as Type
+from tab a
+where  exists (select 1 from tab b where a.id=b.p_id)
+and a.p_id is not null
+-----------------------------
+
+select distinct id , 
+       case when p_id is not null and child_id is not null then 'inner' 
+            when p_id is null then 'Root'
+       else 'Leaf'
+       end as Type 
+       
+ from (
+select a.*, b.id as child_id 
+from tab a left join tab b 
+on (a.id=b.p_id))
+order by 1
